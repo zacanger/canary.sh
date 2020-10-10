@@ -41,6 +41,11 @@ EOF
 }
 
 validate() {
+  if ! hash kubectl 2>/dev/null; then
+    echo "$(basename "$0"): kubectl is required to use this program"
+    exit 1
+  fi
+
   # Match --help, -help, -h, help
   if [[ "$1" =~ "help" ]] || [[ "$1" =~ "-h" ]]; then
     usage 0

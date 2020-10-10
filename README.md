@@ -121,13 +121,30 @@ Further improvements
 =======
 # canary.sh
 
+**WIP this is not safe to use yet**
+
+Pure shell vanilla Kubernetes Canary rollouts
+
 [![Support with PayPal](https://img.shields.io/badge/paypal-donate-yellow.png)](https://paypal.me/zacanger) [![Patreon](https://img.shields.io/badge/patreon-donate-yellow.svg)](https://www.patreon.com/zacanger) [![ko-fi](https://img.shields.io/badge/donate-KoFi-yellow.svg)](https://ko-fi.com/U7U2110VB)
 
 --------
 
 ## Installation
 
+Get the script, put it somewhere in PATH, and make it executable. Example:
+
+```
+curl -sSL \
+  https://raw.githubusercontent.com/zacanger/canary.sh/master/canary.sh \
+  -o /usr/bin/canary.sh
+chmod +x /usr/bin/canary.sh
+```
+
+`canary.sh` assumes you have Bash and kubectl.
+
 ## Usage
+
+`canary.sh -h` will explain usage.
 
 [LICENSE](./LICENSE.md)
 >>>>>>> 209057a... chore: add all the stuff
