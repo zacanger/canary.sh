@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-# Forked from
-# https://github.com/codefresh-io/k8s-canary-deployment under the MIT license,
-# with a later version at
-# https://github.com/codefresh-io/steps/blob/master/incubating/k8s-canary-deployment/k8s-canary-rollout.sh
-# Heavily modified to work without codefresh, allow more options, include
-# better logs and usage messages, treat strings safely, and various other
-# changes.
-
 usage() {
   cat <<EOF
 $(basename "$0") usage example:

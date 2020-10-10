@@ -127,6 +127,13 @@ Pure shell vanilla Kubernetes Canary rollouts
 
 [![Support with PayPal](https://img.shields.io/badge/paypal-donate-yellow.png)](https://paypal.me/zacanger) [![Patreon](https://img.shields.io/badge/patreon-donate-yellow.svg)](https://www.patreon.com/zacanger) [![ko-fi](https://img.shields.io/badge/donate-KoFi-yellow.svg)](https://ko-fi.com/U7U2110VB)
 
+Forked from
+<https://github.com/codefresh-io/k8s-canary-deployment> (MIT licensed).
+There's a later version in <https://github.com/codefresh-io/steps>.
+Heavily modified to work without Codefresh, allow more options, include
+better logs and usage messages, treat strings safely, and various other
+changes.
+
 --------
 
 ## Installation
