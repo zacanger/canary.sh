@@ -147,6 +147,10 @@ chmod +x /usr/bin/canary.sh
 
 `canary.sh` assumes you have Bash and kubectl.
 
+Your service and deployment should have `metadata.labels.version` (which should
+match the container image tag), and your deployment should be suffixed with
+`-version`, for example `book-ratings-v1.0.0`.
+
 ## Usage
 
 `canary.sh -h` will explain usage.

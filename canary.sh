@@ -219,7 +219,7 @@ input_deployment() {
 
 main() {
   if [ -n "$KUBE_CONTEXT" ]; then
-    cho "[$(basename "$0") ${FUNCNAME[0]}] Setting Kubernetes context"
+    echo "[$(basename "$0") ${FUNCNAME[0]}] Setting Kubernetes context"
     kubectl config use-context "${KUBE_CONTEXT}"
   fi
 
