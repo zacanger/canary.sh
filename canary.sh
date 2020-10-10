@@ -83,7 +83,10 @@ healthcheck() {
     # shellcheck disable=SC2207
     s=($(echo "$output" | awk '{s+=$4}END{print s}'))
     # shellcheck disable=SC2207
-    c=($(echo "$output" | wc -l))
+    # c=($(echo "$output" | wc -l))
+    # if [ "$c" -lt "1" ]; then
+    #     h=false
+    # fi
 
     # shellcheck disable=SC2128
     if [ "$s" -gt "2" ]; then
