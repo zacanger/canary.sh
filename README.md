@@ -141,9 +141,7 @@ changes.
 Get the script, put it somewhere in PATH, and make it executable. Example:
 
 ```
-curl -sSL \
-  https://raw.githubusercontent.com/zacanger/canary.sh/master/canary.sh \
-  -o /usr/bin/canary.sh
+curl -sSL https://git.io/JTJxc -o /usr/bin/canary.sh
 chmod +x /usr/bin/canary.sh
 ```
 
