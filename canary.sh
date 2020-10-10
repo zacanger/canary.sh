@@ -68,6 +68,7 @@ healthcheck() {
   if [ -n "$CUSTOM_HEALTHCHECK" ]; then
     # Run whatever the user provided, check its exit code
     "$CUSTOM_HEALTHCHECK"
+    # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
       h=false
     fi
@@ -79,9 +80,12 @@ healthcheck() {
       --no-headers)
 
     echo "[$(basename "$0") ${FUNCNAME[0]}] $output"
+    # shellcheck disable=SC2207
     s=($(echo "$output" | awk '{s+=$4}END{print s}'))
+    # shellcheck disable=SC2207
     c=($(echo "$output" | wc -l))
 
+    # shellcheck disable=SC2128
     if [ "$s" -gt "2" ]; then
       h=false
     fi
@@ -145,16 +149,19 @@ incrementservice() {
   echo "[$(basename "$0") ${FUNCNAME[0]}] Production has now $prod_replicas replicas, canary has $canary_replicas replicas"
 
   # This gets the floor for pods, 2.69 will equal 2
+  # shellcheck disable=SC2219
   let increment="($percent*$starting_replicas*100)/(100-$percent)/100"
 
   echo "[$(basename "$0") ${FUNCNAME[0]}] Incrementing canary and decreasing production for $increment replicas"
 
+  # shellcheck disable=SC2219
   let new_prod_replicas="$prod_replicas-$increment"
   # Sanity check
   if [ "$new_prod_replicas" -lt "0" ]; then
     new_prod_replicas=0
   fi
 
+  # shellcheck disable=SC2219
   let new_canary_replicas="$canary_replicas+$increment"
   # Sanity check
   if [ "$new_canary_replicas" -ge "$starting_replicas" ]; then
