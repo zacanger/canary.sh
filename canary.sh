@@ -57,9 +57,11 @@ healthcheck() {
   echo "[$(basename "$0") ${FUNCNAME[0]}] Starting healthcheck"
   h=true
 
+  # TODO: does this work?
   if [ -n "$CUSTOM_HEALTHCHECK" ]; then
     # Run whatever the user provided, check its exit code
     "$CUSTOM_HEALTHCHECK"
+    # TODO:
     # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
       h=false
@@ -72,14 +74,17 @@ healthcheck() {
       --no-headers)
 
     echo "[$(basename "$0") ${FUNCNAME[0]}] $output"
+    # TODO:
     # shellcheck disable=SC2207
     s=($(echo "$output" | awk '{s+=$4}END{print s}'))
+    # TODO:
     # shellcheck disable=SC2207
     # c=($(echo "$output" | wc -l))
     # if [ "$c" -lt "1" ]; then
     #     h=false
     # fi
 
+    # TODO:
     # shellcheck disable=SC2128
     if [ "$s" -gt "2" ]; then
       h=false
@@ -126,7 +131,7 @@ cleanup() {
     kubectl apply --namespace="${NAMESPACE}" -f -
 }
 
-incrementservice() {
+increment_traffic() {
   percent=$1
   starting_replicas=$2
 
@@ -144,11 +149,13 @@ incrementservice() {
   echo "[$(basename "$0") ${FUNCNAME[0]}] Production has now $prod_replicas replicas, canary has $canary_replicas replicas"
 
   # This gets the floor for pods, 2.69 will equal 2
+  # TODO:
   # shellcheck disable=SC2219
   let increment="($percent*$starting_replicas*100)/(100-$percent)/100"
 
   echo "[$(basename "$0") ${FUNCNAME[0]}] Incrementing canary and decreasing production for $increment replicas"
 
+  # TODO:
   # shellcheck disable=SC2219
   let new_prod_replicas="$prod_replicas-$increment"
   # Sanity check
@@ -156,6 +163,7 @@ incrementservice() {
     new_prod_replicas=0
   fi
 
+  # TODO:
   # shellcheck disable=SC2219
   let new_canary_replicas="$canary_replicas+$increment"
   # Sanity check
@@ -204,8 +212,8 @@ copy_deployment() {
   echo "[$(basename "$0") ${FUNCNAME[0]}] Production deployment is $PROD_DEPLOYMENT, canary is $CANARY_DEPLOYMENT"
 }
 
+# TODO: does this work?
 input_deployment() {
-  # Ouput user provided yml file to use as deployment object
   echo "${INPUT_DEPLOYMENT}" > "${WORKING_DIR}/canary_deployment.yaml"
 }
 
@@ -237,6 +245,7 @@ main() {
   echo "[$(basename "$0") ${FUNCNAME[0]}] Found image $IMAGE"
   echo "[$(basename "$0") ${FUNCNAME[0]}] Finding current replicas"
 
+  # TODO: does this work?
   if [[ -n ${INPUT_DEPLOYMENT} ]]; then
     input_deployment
 
@@ -276,7 +285,7 @@ main() {
     fi
     echo "[$(basename "$0") ${FUNCNAME[0]}] Rollout is at $p percent"
 
-    incrementservice "$TRAFFIC_INCREMENT" "$STARTING_REPLICAS"
+    increment_traffic "$TRAFFIC_INCREMENT" "$STARTING_REPLICAS"
 
     if [ "$p" == "100" ]; then
       cleanup
