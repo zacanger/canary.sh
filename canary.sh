@@ -8,10 +8,10 @@ $canarysh usage example:
 
 NAMESPACE=books \\
   NEW_VERSION=v1.0.1 \\
-  SLEEP_SECONDS=30 \\
+  INTERVAL=30 \\
   TRAFFIC_INCREMENT=20 \\
-  DEPLOYMENT_NAME=book-ratings \\
-  SERVICE_NAME=book-ratings-loadbalancer \\
+  DEPLOYMENT=book-ratings \\
+  SERVICE=book-ratings-loadbalancer \\
   $canarysh
 
 These options would deploy version \`v1.0.1\` of \`book-ratings\` using the
@@ -47,11 +47,11 @@ validate() {
   fi
 
   if [ -z "$NEW_VERSION" ] || \
-    [ -z "$SERVICE_NAME" ] || \
-    [ -z "$DEPLOYMENT_NAME" ] || \
+    [ -z "$SERVICE" ] || \
+    [ -z "$DEPLOYMENT" ] || \
     [ -z "$TRAFFIC_INCREMENT" ] || \
     [ -z "$NAMESPACE" ] || \
-    [ -z "$SLEEP_SECONDS" ]; then
+    [ -z "$INTERVAL" ]; then
     usage 1
   fi
 }
@@ -72,7 +72,7 @@ healthcheck() {
   else
     # K8s healthcheck
     output=$(kubectl get pods \
-      -l app="$CANARY_DEPLOYMENT" \
+      -l app="$canary_deployment" \
       -n "$NAMESPACE" \
       --no-headers)
 
@@ -105,54 +105,54 @@ healthcheck() {
 cancel() {
   echo "[$canarysh ${FUNCNAME[0]}] Healthcheck failed; canceling rollout"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Restoring original deployment to $PROD_DEPLOYMENT"
+  echo "[$canarysh ${FUNCNAME[0]}] Restoring original deployment to $prod_deployment"
   kubectl apply \
     --force \
     -f "$WORKING_DIR/original_deployment.yaml" \
     -n "$NAMESPACE"
-  kubectl rollout status "deployment/$PROD_DEPLOYMENT" -n "$NAMESPACE"
+  kubectl rollout status "deployment/$prod_deployment" -n "$NAMESPACE"
 
   echo "[$canarysh ${FUNCNAME[0]}] Removing canary deployment completely"
-  kubectl delete deployment "$CANARY_DEPLOYMENT" -n "$NAMESPACE"
+  kubectl delete deployment "$canary_deployment" -n "$NAMESPACE"
 
   echo "[$canarysh ${FUNCNAME[0]}] Removing canary HPA completely"
-  kubectl delete hpa "$CANARY_DEPLOYMENT" -n "$NAMESPACE"
+  kubectl delete hpa "$canary_deployment" -n "$NAMESPACE"
 
   exit 1
 }
 
 cleanup() {
-  echo "[$canarysh ${FUNCNAME[0]}] Removing previous deployment $PROD_DEPLOYMENT"
-  kubectl delete deployment "$PROD_DEPLOYMENT" -n "$NAMESPACE"
+  echo "[$canarysh ${FUNCNAME[0]}] Removing previous deployment $prod_deployment"
+  kubectl delete deployment "$prod_deployment" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Removing previous HPA $PROD_DEPLOYMENT"
-  kubectl delete hpa "$PROD_DEPLOYMENT" -n "$NAMESPACE"
+  echo "[$canarysh ${FUNCNAME[0]}] Removing previous HPA $prod_deployment"
+  kubectl delete hpa "$prod_deployment" -n "$NAMESPACE"
 
   echo "[$canarysh ${FUNCNAME[0]}] Marking canary as new production"
-  kubectl get service "$SERVICE_NAME" -o=yaml --namespace="${NAMESPACE}" | \
-    sed -e "s/$CURRENT_VERSION/$NEW_VERSION/g" | \
+  kubectl get service "$SERVICE" -o=yaml --namespace="${NAMESPACE}" | \
+    sed -e "s/$current_version/$NEW_VERSION/g" | \
     kubectl apply --namespace="${NAMESPACE}" -f -
 }
 
 increment_traffic() {
   percent=$1
-  starting_replicas=$2
+  replicas=$2
 
-  echo "[$canarysh ${FUNCNAME[0]}] Increasing canaries to $percent percent, max replicas is $starting_replicas"
+  echo "[$canarysh ${FUNCNAME[0]}] Increasing canaries to $percent percent, max replicas is $replicas"
 
   prod_replicas=$(kubectl get deployment \
-    "$PROD_DEPLOYMENT" \
+    "$prod_deployment" \
     -n "$NAMESPACE" \
     -o=jsonpath='{.spec.replicas}')
 
   canary_replicas=$(kubectl get deployment \
-    "$CANARY_DEPLOYMENT" \
+    "$canary_deployment" \
     -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
 
   echo "[$canarysh ${FUNCNAME[0]}] Production has now $prod_replicas replicas, canary has $canary_replicas replicas"
 
   # This gets the floor for pods, 2.69 will equal 2
-  increment=$(((percent*starting_replicas*100)/(100-percent)/100))
+  increment=$(((percent*replicas*100)/(100-percent)/100))
 
   echo "[$canarysh ${FUNCNAME[0]}] Incrementing canary and decreasing production for $increment replicas"
 
@@ -164,30 +164,30 @@ increment_traffic() {
 
   new_canary_replicas=$((canary_replicas+increment))
   # Sanity check
-  if [ "$new_canary_replicas" -ge "$starting_replicas" ]; then
-    new_canary_replicas=$starting_replicas
+  if [ "$new_canary_replicas" -ge "$replicas" ]; then
+    new_canary_replicas=$replicas
     new_prod_replicas=0
   fi
 
   echo "[$canarysh ${FUNCNAME[0]}] Setting canary replicas to $new_canary_replicas"
-  kubectl -n "$NAMESPACE" scale --replicas="$new_canary_replicas" "deploy/$CANARY_DEPLOYMENT"
+  kubectl -n "$NAMESPACE" scale --replicas="$new_canary_replicas" "deploy/$canary_deployment"
 
   echo "[$canarysh ${FUNCNAME[0]}] Setting production replicas to $new_prod_replicas"
-  kubectl -n "$NAMESPACE" scale --replicas=$new_prod_replicas "deploy/$PROD_DEPLOYMENT"
+  kubectl -n "$NAMESPACE" scale --replicas=$new_prod_replicas "deploy/$prod_deployment"
 
   # Wait a bit until production instances are down. This should always succeed
-  kubectl -n "$NAMESPACE" rollout status "deployment/$PROD_DEPLOYMENT"
+  kubectl -n "$NAMESPACE" rollout status "deployment/$prod_deployment"
 }
 
 copy_deployment() {
   # Replace old deployment name with new
-  sed -Ei -- "s/name\: $PROD_DEPLOYMENT/name: $CANARY_DEPLOYMENT/g" "$WORKING_DIR/canary_deployment.yaml"
+  sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$WORKING_DIR/canary_deployment.yaml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced deployment name"
 
   # Replace docker image
-  sed -Ei -- "s/$CURRENT_VERSION/$NEW_VERSION/g" "$WORKING_DIR/canary_deployment.yaml"
+  sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$WORKING_DIR/canary_deployment.yaml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced image name"
-  echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $PROD_DEPLOYMENT, canary is $CANARY_DEPLOYMENT"
+  echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
 }
 
 # TODO: does this work?
@@ -202,24 +202,24 @@ main() {
   fi
 
   echo "[$canarysh ${FUNCNAME[0]}] Getting current version"
-  CURRENT_VERSION=$(kubectl get service "$SERVICE_NAME" -o=jsonpath='{.metadata.labels.version}' --namespace="${NAMESPACE}")
+  current_version=$(kubectl get service "$SERVICE" -o=jsonpath='{.metadata.labels.version}' --namespace="${NAMESPACE}")
 
-  if [ "$CURRENT_VERSION" == "$NEW_VERSION" ]; then
-   echo "[$canarysh ${FUNCNAME[0]}] NEW_VERSION matches CURRENT_VERSION: $CURRENT_VERSION"
+  if [ "$current_version" == "$NEW_VERSION" ]; then
+   echo "[$canarysh ${FUNCNAME[0]}] NEW_VERSION matches current_version: $current_version"
    exit 0
   fi
 
-  echo "[$canarysh ${FUNCNAME[0]}] Current version is $CURRENT_VERSION"
-  PROD_DEPLOYMENT=$DEPLOYMENT_NAME-$CURRENT_VERSION
+  echo "[$canarysh ${FUNCNAME[0]}] Current version is $current_version"
+  prod_deployment=$DEPLOYMENT-$current_version
 
   echo "[$canarysh ${FUNCNAME[0]}] Getting current deployment"
-  kubectl get deployment "$PROD_DEPLOYMENT" -n "$NAMESPACE" -o=yaml > "$WORKING_DIR/canary_deployment.yaml"
+  kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml > "$WORKING_DIR/canary_deployment.yaml"
 
   echo "[$canarysh ${FUNCNAME[0]}] Backing up original deployment"
   cp "$WORKING_DIR/canary_deployment.yaml" "$WORKING_DIR/original_deployment.yaml"
 
   echo "[$canarysh ${FUNCNAME[0]}] Getting current container image"
-  IMAGE=$(kubectl get deployment "$PROD_DEPLOYMENT" -n "$NAMESPACE" -o=yaml | grep image: | sed -E 's/.*image: (.*)/\1/')
+  IMAGE=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml | grep image: | sed -E 's/.*image: (.*)/\1/')
   echo "[$canarysh ${FUNCNAME[0]}] Found image $IMAGE"
   echo "[$canarysh ${FUNCNAME[0]}] Finding current replicas"
 
@@ -227,32 +227,32 @@ main() {
   if [[ -n ${INPUT_DEPLOYMENT} ]]; then
     input_deployment
 
-    if ! STARTING_REPLICAS=$(grep "replicas:" < "${WORKING_DIR}/canary_deployment.yaml" | awk '{print $2}'); then
+    if ! starting_replicas=$(grep "replicas:" < "${WORKING_DIR}/canary_deployment.yaml" | awk '{print $2}'); then
       echo "[$canarysh ${FUNCNAME[0]}] Failed getting replicas from input file: ${WORKING_DIR}/canary_deployment.yaml"
       echo "[$canarysh ${FUNCNAME[0]}] Using the same number of replicas from prod deployment"
-      STARTING_REPLICAS=$(kubectl get deployment "$PROD_DEPLOYMENT" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
+      starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
     fi
   else
     # Copy existing deployment and update image only
     copy_deployment
 
-    STARTING_REPLICAS=$(kubectl get deployment "$PROD_DEPLOYMENT" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
-    echo "[$canarysh ${FUNCNAME[0]}] Found replicas $STARTING_REPLICAS"
+    starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
+    echo "[$canarysh ${FUNCNAME[0]}] Found replicas $starting_replicas"
   fi
 
   # Start with one replica
-  sed -Ei -- "s#replicas: $STARTING_REPLICAS#replicas: 1#g" "$WORKING_DIR/canary_deployment.yaml"
+  sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$WORKING_DIR/canary_deployment.yaml"
   echo "[$canarysh ${FUNCNAME[0]}] Launching 1 pod with canary"
 
   # Launch canary
   kubectl apply -f "$WORKING_DIR/canary_deployment.yaml" -n "$NAMESPACE"
 
   echo "[$canarysh ${FUNCNAME[0]}] Awaiting canary pod..."
-  while [ "$(kubectl get pods -l app="$CANARY_DEPLOYMENT" -n "$NAMESPACE" --no-headers | wc -l)" -eq 0 ]; do
+  while [ "$(kubectl get pods -l app="$canary_deployment" -n "$NAMESPACE" --no-headers | wc -l)" -eq 0 ]; do
     sleep 2
   done
 
-  echo "[$canarysh ${FUNCNAME[0]}] Canary target replicas: $STARTING_REPLICAS"
+  echo "[$canarysh ${FUNCNAME[0]}] Canary target replicas: $starting_replicas"
 
   healthcheck
 
@@ -263,7 +263,7 @@ main() {
     fi
     echo "[$canarysh ${FUNCNAME[0]}] Rollout is at $p percent"
 
-    increment_traffic "$TRAFFIC_INCREMENT" "$STARTING_REPLICAS"
+    increment_traffic "$TRAFFIC_INCREMENT" "$starting_replicas"
 
     if [ "$p" == "100" ]; then
       cleanup
@@ -271,8 +271,8 @@ main() {
       exit 0
     fi
 
-    echo "[$canarysh ${FUNCNAME[0]}] Sleeping for $SLEEP_SECONDS seconds"
-    sleep "$SLEEP_SECONDS"
+    echo "[$canarysh ${FUNCNAME[0]}] Sleeping for $INTERVAL seconds"
+    sleep "$INTERVAL"
     healthcheck
   done
 }
@@ -281,6 +281,6 @@ if [ -z "$WORKING_DIR" ]; then
   WORKING_DIR=$(pwd)
 fi
 WORKING_DIR=${WORKING_DIR%/}
-CANARY_DEPLOYMENT=$DEPLOYMENT_NAME-$NEW_VERSION
+canary_deployment=$DEPLOYMENT-$NEW_VERSION
 validate "$@"
 main
