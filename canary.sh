@@ -33,6 +33,8 @@ EOF
   exit "$1"
 }
 
+# TODO: Should we switch to using getopt/getopts
+# rather than env vars?
 validate() {
   if ! hash kubectl 2>/dev/null; then
     echo "$canarysh: kubectl is required to use this program"
