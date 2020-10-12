@@ -152,23 +152,17 @@ increment_traffic() {
   echo "[$canarysh ${FUNCNAME[0]}] Production has now $prod_replicas replicas, canary has $canary_replicas replicas"
 
   # This gets the floor for pods, 2.69 will equal 2
-  # TODO:
-  # shellcheck disable=SC2219
-  let increment="($percent*$starting_replicas*100)/(100-$percent)/100"
+  increment=$(((percent*starting_replicas*100)/(100-percent)/100))
 
   echo "[$canarysh ${FUNCNAME[0]}] Incrementing canary and decreasing production for $increment replicas"
 
-  # TODO:
-  # shellcheck disable=SC2219
-  let new_prod_replicas="$prod_replicas-$increment"
+  new_prod_replicas=$((prod_replicas-increment))
   # Sanity check
   if [ "$new_prod_replicas" -lt "0" ]; then
     new_prod_replicas=0
   fi
 
-  # TODO:
-  # shellcheck disable=SC2219
-  let new_canary_replicas="$canary_replicas+$increment"
+  new_canary_replicas=$((canary_replicas+increment))
   # Sanity check
   if [ "$new_canary_replicas" -ge "$starting_replicas" ]; then
     new_canary_replicas=$starting_replicas
@@ -183,25 +177,6 @@ increment_traffic() {
 
   # Wait a bit until production instances are down. This should always succeed
   kubectl -n "$NAMESPACE" rollout status "deployment/$PROD_DEPLOYMENT"
-
-  # Calulate increments. N = the number of starting pods, I = Increment value, X = how many pods to add
-  # x / (N + x) = I
-  # Starting pods N = 5
-  # Desired increment I = 0.35
-  # Solve for X
-  # X / (5+X)= 0.35
-  # X = .35(5+x)
-  # X = 1.75 + .35x
-  # X-.35X=1.75
-  # .65X = 1.75
-  # X = 35/13
-  # X = 2.69
-  # X = 3
-  # 5+3 = 8 #3/8 = 37.5%
-  # Round		A 	B
-  # 1			5	3
-  # 2			2	6
-  # 3			0	5
 }
 
 copy_deployment() {
