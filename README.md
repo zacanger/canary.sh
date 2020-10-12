@@ -123,7 +123,7 @@ Further improvements
 
 **WIP this is not safe to use yet**
 
-Pure shell vanilla Kubernetes Canary rollouts
+Pure Bash vanilla Kubernetes Canary rollouts
 
 Forked from
 <https://github.com/codefresh-io/k8s-canary-deployment> (MIT licensed).
