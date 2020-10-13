@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-canarysh_version=__VERSION__
 canarysh_repo='https://github.com/jane/canary.sh'
 
 canarysh=$(basename "$0")
 usage() {
   cat <<EOF
-$canarysh $canarysh_version
-usage example:
+$canarysh usage example:
 
 NAMESPACE=books \\
   NEW_VERSION=v1.0.1 \\

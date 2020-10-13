@@ -6,4 +6,3 @@ Contributions are welcome!
 * Follow the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct).
 * Make sure you're testing with Bash 4 or 5. If you're on a Mac, you may need to
   `brew install bash` to get a current version.
-* Use `./release.sh v0.0.1` (with the appropriate semver level) to cut releases.
