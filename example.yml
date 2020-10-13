@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: awesome-app
+    # Add this
+    version: v0.0.1
+  # Add version to deployment name
+  name: awesome-app-v0.0.1
+spec:
+  selector:
+    matchLabels:
+      app: awesome-app
+  replicas: 7
+  template:
+    metadata:
+      labels:
+        app: awesome-app
+    spec:
+      containers:
+      - image: 'awesome-app:v0.0.1'
+        name: awesome-app
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /.liveness-check
+            port: 3000
+        readinessProbe:
+          httpGet:
+            path: /.readiness-check
+            port: 3000
+        ports:
+        - containerPort: 3000
+        env:
+        - name: APP_ENV
+          value: production
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: awesome-app
+    # Add this
+    version: v0.0.1
+  name: awesome-app
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "Name=awesome-app,Managed=True"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+  selector:
+    app: awesome-app
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: awesome-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: awesome-app
+  minReplicas: 7
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 80

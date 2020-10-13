@@ -113,7 +113,7 @@ cancel() {
   echo "[$canarysh ${FUNCNAME[0]}] Restoring original deployment to $prod_deployment"
   kubectl apply \
     --force \
-    -f "$WORKING_DIR/original_deployment.yaml" \
+    -f "$WORKING_DIR/original_deployment.yml" \
     -n "$NAMESPACE"
   kubectl rollout status "deployment/$prod_deployment" -n "$NAMESPACE"
 
@@ -186,18 +186,18 @@ increment_traffic() {
 
 copy_deployment() {
   # Replace old deployment name with new
-  sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$WORKING_DIR/canary_deployment.yaml"
+  sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$WORKING_DIR/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced deployment name"
 
   # Replace docker image
-  sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$WORKING_DIR/canary_deployment.yaml"
+  sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$WORKING_DIR/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced image name"
   echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
 }
 
 # TODO: does this work?
 input_deployment() {
-  echo "${INPUT_DEPLOYMENT}" > "${WORKING_DIR}/canary_deployment.yaml"
+  echo "${INPUT_DEPLOYMENT}" > "${WORKING_DIR}/canary_deployment.yml"
 }
 
 main() {
@@ -225,10 +225,10 @@ main() {
   prod_deployment=$DEPLOYMENT-$current_version
 
   echo "[$canarysh ${FUNCNAME[0]}] Getting current deployment"
-  kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml > "$WORKING_DIR/canary_deployment.yaml"
+  kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml > "$WORKING_DIR/canary_deployment.yml"
 
   echo "[$canarysh ${FUNCNAME[0]}] Backing up original deployment"
-  cp "$WORKING_DIR/canary_deployment.yaml" "$WORKING_DIR/original_deployment.yaml"
+  cp "$WORKING_DIR/canary_deployment.yml" "$WORKING_DIR/original_deployment.yml"
 
   echo "[$canarysh ${FUNCNAME[0]}] Finding current replicas"
 
@@ -236,8 +236,8 @@ main() {
   if [[ -n ${INPUT_DEPLOYMENT} ]]; then
     input_deployment
 
-    if ! starting_replicas=$(grep "replicas:" < "${WORKING_DIR}/canary_deployment.yaml" | awk '{print $2}'); then
-      echo "[$canarysh ${FUNCNAME[0]}] Failed getting replicas from input file: ${WORKING_DIR}/canary_deployment.yaml"
+    if ! starting_replicas=$(grep "replicas:" < "${WORKING_DIR}/canary_deployment.yml" | awk '{print $2}'); then
+      echo "[$canarysh ${FUNCNAME[0]}] Failed getting replicas from input file: ${WORKING_DIR}/canary_deployment.yml"
       echo "[$canarysh ${FUNCNAME[0]}] Using the same number of replicas from prod deployment"
       starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
     fi
@@ -250,9 +250,9 @@ main() {
   fi
 
   # Launch one replica first
-  sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$WORKING_DIR/canary_deployment.yaml"
+  sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$WORKING_DIR/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Launching 1 pod with canary"
-  kubectl apply -f "$WORKING_DIR/canary_deployment.yaml" -n "$NAMESPACE"
+  kubectl apply -f "$WORKING_DIR/canary_deployment.yml" -n "$NAMESPACE"
 
   echo "[$canarysh ${FUNCNAME[0]}] Waiting for canary pod"
   while [ "$(kubectl get pods -l app="$canary_deployment" -n "$NAMESPACE" --no-headers | wc -l)" -eq 0 ]; do
