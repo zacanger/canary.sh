@@ -209,6 +209,13 @@ main() {
   echo "[$canarysh ${FUNCNAME[0]}] Getting current version"
   current_version=$(kubectl get service "$SERVICE" -o=jsonpath='{.metadata.labels.version}' --namespace="${NAMESPACE}")
 
+  if [ -z "$current_version" ]; then
+    echo "[$canarysh ${FUNCNAME[0]}] No current version found"
+    echo "[$canarysh ${FUNCNAME[0]}] Do you have metadata.labels.version set?"
+    echo "[$canarysh ${FUNCNAME[0]}] Aborting"
+    exit 1
+  fi
+
   if [ "$current_version" == "$NEW_VERSION" ]; then
    echo "[$canarysh ${FUNCNAME[0]}] NEW_VERSION matches current_version: $current_version"
    exit 0
@@ -223,9 +230,6 @@ main() {
   echo "[$canarysh ${FUNCNAME[0]}] Backing up original deployment"
   cp "$WORKING_DIR/canary_deployment.yaml" "$WORKING_DIR/original_deployment.yaml"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Getting current container image"
-  IMAGE=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml | grep image: | sed -E 's/.*image: (.*)/\1/')
-  echo "[$canarysh ${FUNCNAME[0]}] Found image $IMAGE"
   echo "[$canarysh ${FUNCNAME[0]}] Finding current replicas"
 
   # TODO: does this work?
@@ -245,14 +249,12 @@ main() {
     echo "[$canarysh ${FUNCNAME[0]}] Found replicas $starting_replicas"
   fi
 
-  # Start with one replica
+  # Launch one replica first
   sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$WORKING_DIR/canary_deployment.yaml"
   echo "[$canarysh ${FUNCNAME[0]}] Launching 1 pod with canary"
-
-  # Launch canary
   kubectl apply -f "$WORKING_DIR/canary_deployment.yaml" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Awaiting canary pod..."
+  echo "[$canarysh ${FUNCNAME[0]}] Waiting for canary pod"
   while [ "$(kubectl get pods -l app="$canary_deployment" -n "$NAMESPACE" --no-headers | wc -l)" -eq 0 ]; do
     sleep 2
   done
