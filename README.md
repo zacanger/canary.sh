@@ -121,16 +121,9 @@ Further improvements
 =======
 # canary.sh
 
-**WIP this is not safe to use yet**
+**WIP: This is not safe to use yet!**
 
 Pure Bash vanilla Kubernetes Canary rollouts
-
-Forked from
-<https://github.com/codefresh-io/k8s-canary-deployment> (MIT licensed).
-There's a later version in <https://github.com/codefresh-io/steps>.
-Heavily modified to work without Codefresh, allow more options, include
-better logs and usage messages, treat strings safely, and various other
-changes.
 
 --------
 
@@ -153,5 +146,23 @@ match the container image tag), and your deployment should be suffixed with
 
 `canary.sh -h` will explain usage.
 
+<<<<<<< HEAD
 [LICENSE](./LICENSE.md)
 >>>>>>> 209057a... chore: add all the stuff
+=======
+## Contributing
+
+Pull requests and issues are welcome. See
+[CONTRIBUTING](./.github/CONTRIBUTING.md) for details.
+
+## Credits and License
+
+Originally forked from
+<https://github.com/codefresh-io/k8s-canary-deployment> (MIT licensed).
+There's a later version in <https://github.com/codefresh-io/steps>.
+Heavily modified to work without Codefresh, allow more options, include
+better logs and usage messages, treat strings safely, and various other
+changes.
+
+[LICENSE (MIT)](./LICENSE.md)
+>>>>>>> 462fa53... docs: links, better help, etc

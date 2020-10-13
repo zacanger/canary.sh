@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 set -e
 
+canarysh_version=__VERSION__
+canarysh_repo='https://github.com/jane/canary.sh'
+
 canarysh=$(basename "$0")
 usage() {
   cat <<EOF
-$canarysh usage example:
+$canarysh $canarysh_version
+usage example:
 
 NAMESPACE=books \\
   NEW_VERSION=v1.0.1 \\
@@ -28,8 +32,11 @@ Optional variables:
   CUSTOM_HEALTHCHECK: absolute path to script to run rather than using
     Kubernetes health check. This should return 0 if healthy and
     anything else otherwise.
+
+See $canarysh_repo for details.
 EOF
 
+  # Passed 0 or 1 from validate function
   exit "$1"
 }
 
