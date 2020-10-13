@@ -20,26 +20,8 @@ spec:
       containers:
       - image: 'awesome-app:v0.0.1'
         name: awesome-app
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 1Gi
-          requests:
-            cpu: 500m
-            memory: 512Mi
-        livenessProbe:
-          httpGet:
-            path: /.liveness-check
-            port: 3000
-        readinessProbe:
-          httpGet:
-            path: /.readiness-check
-            port: 3000
         ports:
         - containerPort: 3000
-        env:
-        - name: APP_ENV
-          value: production
       restartPolicy: Always
 ---
 apiVersion: v1
@@ -50,9 +32,6 @@ metadata:
     # Add this
     version: v0.0.1
   name: awesome-app
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
-    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "Name=awesome-app,Managed=True"
 spec:
   type: LoadBalancer
   ports:

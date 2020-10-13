@@ -120,8 +120,8 @@ cancel() {
   echo "[$canarysh ${FUNCNAME[0]}] Removing canary deployment completely"
   kubectl delete deployment "$canary_deployment" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Removing canary HPA completely"
-  kubectl delete hpa "$canary_deployment" -n "$NAMESPACE"
+  # echo "[$canarysh ${FUNCNAME[0]}] Removing canary HPA completely"
+  # kubectl delete hpa "$canary_deployment" -n "$NAMESPACE"
 
   exit 1
 }
@@ -130,8 +130,8 @@ cleanup() {
   echo "[$canarysh ${FUNCNAME[0]}] Removing previous deployment $prod_deployment"
   kubectl delete deployment "$prod_deployment" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Removing previous HPA $prod_deployment"
-  kubectl delete hpa "$prod_deployment" -n "$NAMESPACE"
+  # echo "[$canarysh ${FUNCNAME[0]}] Removing previous HPA $prod_deployment"
+  # kubectl delete hpa "$prod_deployment" -n "$NAMESPACE"
 
   echo "[$canarysh ${FUNCNAME[0]}] Marking canary as new production"
   kubectl get service "$SERVICE" -o=yaml --namespace="${NAMESPACE}" | \
