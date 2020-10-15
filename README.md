@@ -121,9 +121,11 @@ Further improvements
 =======
 # canary.sh
 
-**WIP: This is not safe to use yet!**
-
 Pure Bash vanilla Kubernetes Canary rollouts
+
+This is tested and safe to use with one caveat: if you have HPAs, this will
+break them, since it creates new deployments with new names. Copying over the
+HPA is a WIP feature.
 
 --------
 

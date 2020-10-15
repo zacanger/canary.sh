@@ -202,6 +202,9 @@ copy_deployment() {
   $_sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$working_dir/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced image name"
   echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
+
+  ## TODO: if hpa exists, we need to copy the hpa, change the target, and also
+  # clean up the old hpa
 }
 
 main() {
