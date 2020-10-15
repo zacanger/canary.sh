@@ -15,6 +15,3 @@ x/
 *.yaml*
 *.yml*
 !example.yml
-
-# TODO: remove when done testing
-/thing.sh
