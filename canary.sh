@@ -53,6 +53,17 @@ validate() {
     exit 1
   fi
 
+  # BSD sed doesn't have a --help flag
+  $_sed --help 2>/dev/null || {
+    echo "$canarysh: GNU sed is required"
+    exit 1
+  }
+
+  if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    echo "$canarysh: Minimum supported Bash version is 4"
+    exit 1
+  fi
+
   # Match --help, -help, -h, help
   if [[ "$1" =~ "help" ]] || [[ "$1" =~ "-h" ]]; then
     usage 0
