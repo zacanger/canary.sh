@@ -54,7 +54,7 @@ validate() {
   fi
 
   # BSD sed doesn't have a --help flag
-  $_sed --help 2>/dev/null || {
+  $_sed --help >/dev/null 2>&1 || {
     echo "$canarysh: GNU sed is required"
     exit 1
   }

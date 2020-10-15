@@ -140,7 +140,7 @@ chmod +x /usr/bin/canary.sh
 
 ## Prerequisites
 
-* Bash 4 or 5
+* Bash 4+
 * kubectl
 * GNU sed (if you have both `sed` and `gsed`, the script will use `gsed`)
 * An existing deployment and service. These will need to be modified slightly
@@ -149,7 +149,33 @@ chmod +x /usr/bin/canary.sh
 
 ## Usage
 
-`canary.sh -h` will explain usage.
+```
+$ canary.sh -h
+
+canary.sh usage example:
+
+NAMESPACE=books \
+  NEW_VERSION=v1.0.1 \
+  INTERVAL=30 \
+  TRAFFIC_INCREMENT=20 \
+  DEPLOYMENT=book-ratings \
+  SERVICE=book-ratings-loadbalancer \
+  canary.sh
+
+These options would deploy version `v1.0.1` of `book-ratings` using the
+image found in the previous version of the deployment with an updated
+tag, in the `books` namespace, with traffic coming from the
+`book-ratings-loadbalancer` service, migrating 20% of traffic at a time
+to the new version at 30 second intervals.
+
+Optional variables:
+  KUBE_CONTEXT: defaults to currently selected context.
+  HEALTHCHECK: command or path to scrip to run instead of
+    Kubernetes health check. The command or script should return 0
+    if healthy and anything else otherwise.
+
+See https://github.com/jane/canary.sh for details.
+```
 
 <<<<<<< HEAD
 [LICENSE](./LICENSE.md)
