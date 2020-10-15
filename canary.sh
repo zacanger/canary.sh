@@ -3,6 +3,10 @@ set -e
 
 canarysh_repo='https://github.com/jane/canary.sh'
 canarysh=$(basename "$0")
+# TODO: change below when done debugging
+# working_dir=$(mktemp -d)
+working_dir=$(pwd)
+canary_deployment=$DEPLOYMENT-$NEW_VERSION
 
 # GNU sed only. This is specified in the readme.
 if hash gsed 2>/dev/null; then
@@ -30,7 +34,6 @@ tag, in the \`books\` namespace, with traffic coming from the
 to the new version at 30 second intervals.
 
 Optional variables:
-  WORKING_DIR: defaults to pwd.
   KUBE_CONTEXT: defaults to currently selected context.
   CUSTOM_HEALTHCHECK: absolute path to script to run rather than using
     Kubernetes health check. This should return 0 if healthy and
@@ -118,7 +121,7 @@ cancel() {
   echo "[$canarysh ${FUNCNAME[0]}] Restoring original deployment to $prod_deployment"
   kubectl apply \
     --force \
-    -f "$WORKING_DIR/original_deployment.yml" \
+    -f "$working_dir/original_deployment.yml" \
     -n "$NAMESPACE"
   kubectl rollout status "deployment/$prod_deployment" -n "$NAMESPACE"
 
@@ -191,11 +194,11 @@ increment_traffic() {
 
 copy_deployment() {
   # Replace old deployment name with new
-  $_sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$WORKING_DIR/canary_deployment.yml"
+  $_sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$working_dir/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced deployment name"
 
   # Replace docker image
-  $_sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$WORKING_DIR/canary_deployment.yml"
+  $_sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$working_dir/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced image name"
   echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
 }
@@ -225,10 +228,10 @@ main() {
   prod_deployment=$DEPLOYMENT-$current_version
 
   echo "[$canarysh ${FUNCNAME[0]}] Getting current deployment"
-  kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml > "$WORKING_DIR/canary_deployment.yml"
+  kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml > "$working_dir/canary_deployment.yml"
 
   echo "[$canarysh ${FUNCNAME[0]}] Backing up original deployment"
-  cp "$WORKING_DIR/canary_deployment.yml" "$WORKING_DIR/original_deployment.yml"
+  cp "$working_dir/canary_deployment.yml" "$working_dir/original_deployment.yml"
 
   echo "[$canarysh ${FUNCNAME[0]}] Finding current replicas"
 
@@ -239,9 +242,9 @@ main() {
   echo "[$canarysh ${FUNCNAME[0]}] Found replicas $starting_replicas"
 
   # Launch one replica first
-  $_sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$WORKING_DIR/canary_deployment.yml"
+  $_sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$working_dir/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Launching 1 pod with canary"
-  kubectl apply -f "$WORKING_DIR/canary_deployment.yml" -n "$NAMESPACE"
+  kubectl apply -f "$working_dir/canary_deployment.yml" -n "$NAMESPACE"
 
   echo "[$canarysh ${FUNCNAME[0]}] Waiting for canary pod"
   while [ "$(kubectl get pods -l app="$canary_deployment" -n "$NAMESPACE" --no-headers | wc -l)" -eq 0 ]; do
@@ -273,10 +276,5 @@ main() {
   done
 }
 
-if [ -z "$WORKING_DIR" ]; then
-  WORKING_DIR=$(pwd)
-fi
-WORKING_DIR=${WORKING_DIR%/}
-canary_deployment=$DEPLOYMENT-$NEW_VERSION
 validate "$@"
 main
