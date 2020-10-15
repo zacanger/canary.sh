@@ -32,8 +32,6 @@ to the new version at 30 second intervals.
 Optional variables:
   WORKING_DIR: defaults to pwd.
   KUBE_CONTEXT: defaults to currently selected context.
-  INPUT_DEPLOYMENT: YAML string for replacement deployment, defaults
-    to using current deployment with updated version.
   CUSTOM_HEALTHCHECK: absolute path to script to run rather than using
     Kubernetes health check. This should return 0 if healthy and
     anything else otherwise.
@@ -202,11 +200,6 @@ copy_deployment() {
   echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
 }
 
-# TODO: does this work?
-input_deployment() {
-  echo "${INPUT_DEPLOYMENT}" > "${WORKING_DIR}/canary_deployment.yml"
-}
-
 main() {
   if [ -n "$KUBE_CONTEXT" ]; then
     echo "[$canarysh ${FUNCNAME[0]}] Setting Kubernetes context"
@@ -239,22 +232,11 @@ main() {
 
   echo "[$canarysh ${FUNCNAME[0]}] Finding current replicas"
 
-  # TODO: does this work?
-  if [[ -n ${INPUT_DEPLOYMENT} ]]; then
-    input_deployment
+  # Copy existing deployment and update image only
+  copy_deployment
 
-    if ! starting_replicas=$(grep "replicas:" < "${WORKING_DIR}/canary_deployment.yml" | awk '{print $2}'); then
-      echo "[$canarysh ${FUNCNAME[0]}] Failed getting replicas from input file: ${WORKING_DIR}/canary_deployment.yml"
-      echo "[$canarysh ${FUNCNAME[0]}] Using the same number of replicas from prod deployment"
-      starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
-    fi
-  else
-    # Copy existing deployment and update image only
-    copy_deployment
-
-    starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
-    echo "[$canarysh ${FUNCNAME[0]}] Found replicas $starting_replicas"
-  fi
+  starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
+  echo "[$canarysh ${FUNCNAME[0]}] Found replicas $starting_replicas"
 
   # Launch one replica first
   $_sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$WORKING_DIR/canary_deployment.yml"
