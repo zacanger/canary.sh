@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-set -e
+set -eo pipefail
 
 canarysh_repo='https://github.com/jane/canary.sh'
 canarysh=$(basename "$0")
-# TODO: change below when done debugging
-# working_dir=$(mktemp -d)
-working_dir=$(pwd)
+# Change to pwd for debugging
+working_dir=$(mktemp -d)
 canary_deployment=$DEPLOYMENT-$NEW_VERSION
 
 # GNU sed only. This is specified in the readme.
@@ -35,9 +34,9 @@ to the new version at 30 second intervals.
 
 Optional variables:
   KUBE_CONTEXT: defaults to currently selected context.
-  CUSTOM_HEALTHCHECK: absolute path to script to run rather than using
-    Kubernetes health check. This should return 0 if healthy and
-    anything else otherwise.
+  HEALTHCHECK: command or path to scrip to run instead of
+    Kubernetes health check. The command or script should return 0
+    if healthy and anything else otherwise.
 
 See $canarysh_repo for details.
 EOF
@@ -73,15 +72,17 @@ healthcheck() {
   echo "[$canarysh ${FUNCNAME[0]}] Starting healthcheck"
   h=true
 
-  # TODO: does this work?
-  if [ -n "$CUSTOM_HEALTHCHECK" ]; then
+  if [ -n "$HEALTHCHECK" ]; then
     # Run whatever the user provided, check its exit code
-    "$CUSTOM_HEALTHCHECK"
+    # Set +e so the parent (this script) doesn't exit
+    set +e
+    "$HEALTHCHECK"
     # TODO:
     # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
       h=false
     fi
+    set -e
   else
     # K8s healthcheck
     output=$(kubectl get pods \

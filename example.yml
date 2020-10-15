@@ -1,6 +1,16 @@
+# Run with:
+# NAMESPACE=canary-test \
+#   NEW_VERSION=v0.0.2 \
+#   INTERVAL=60 \
+#   TRAFFIC_INCEMENT=20 \
+#   DEPLOYMENT=awesome-app \
+#   SERVICE=awesome-app \
+#   canary.sh
+
 apiVersion: v1
 kind: Service
 metadata:
+  namespace: canary-test
   name: awesome-app
   labels:
     app: awesome-app
@@ -17,6 +27,7 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  namespace: canary-test
   labels:
     app: awesome-app
     name: awesome-app
