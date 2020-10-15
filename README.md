@@ -141,12 +141,9 @@ chmod +x /usr/bin/canary.sh
 * Bash 4 or 5
 * kubectl
 * GNU sed (if you have both `sed` and `gsed`, the script will use `gsed`)
-* An existing service with `metadata.labels.version` defined as your current
-  version
-* An existing deployment with `metadata.labels.version` defined, and with the
-  deployment name in the format `deployment-version`.
-
-See [this example](./example.yml).
+* An existing deployment and service. These will need to be modified slightly
+  to work with this script. See [the example](./example.yml) for required
+  changes.
 
 ## Usage
 

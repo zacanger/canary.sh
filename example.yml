@@ -13,8 +13,7 @@ metadata:
   namespace: canary-test
   name: awesome-app
   labels:
-    app: awesome-app
-    name: awesome-app
+    # Version label is required
     version: v0.0.1
 spec:
   ports:
@@ -28,20 +27,17 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   namespace: canary-test
-  labels:
-    app: awesome-app
-    name: awesome-app
-    version: v0.0.1
+  # Version appended to name is required
   name: awesome-app-v0.0.1
 spec:
-  replicas: 7
+  replicas: 8
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
+        # App label is required
         app: awesome-app
-        app: awesome-app-v0.0.1
     spec:
       containers:
       - image: 'awesome-app:v0.0.1'
