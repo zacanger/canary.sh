@@ -2,8 +2,15 @@
 set -e
 
 canarysh_repo='https://github.com/jane/canary.sh'
-
 canarysh=$(basename "$0")
+
+# GNU sed only. This is specified in the readme.
+if hash gsed 2>/dev/null; then
+  _sed=$(which gsed)
+else
+  _sed=$(which sed)
+fi
+
 usage() {
   cat <<EOF
 $canarysh usage example:
@@ -135,7 +142,7 @@ cleanup() {
 
   echo "[$canarysh ${FUNCNAME[0]}] Marking canary as new production"
   kubectl get service "$SERVICE" -o=yaml --namespace="${NAMESPACE}" | \
-    sed -e "s/$current_version/$NEW_VERSION/g" | \
+    $_sed -e "s/$current_version/$NEW_VERSION/g" | \
     kubectl apply --namespace="${NAMESPACE}" -f -
 }
 
@@ -186,11 +193,11 @@ increment_traffic() {
 
 copy_deployment() {
   # Replace old deployment name with new
-  sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$WORKING_DIR/canary_deployment.yml"
+  $_sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$WORKING_DIR/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced deployment name"
 
   # Replace docker image
-  sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$WORKING_DIR/canary_deployment.yml"
+  $_sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$WORKING_DIR/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced image name"
   echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
 }
@@ -250,7 +257,7 @@ main() {
   fi
 
   # Launch one replica first
-  sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$WORKING_DIR/canary_deployment.yml"
+  $_sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$WORKING_DIR/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Launching 1 pod with canary"
   kubectl apply -f "$WORKING_DIR/canary_deployment.yml" -n "$NAMESPACE"
 

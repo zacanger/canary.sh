@@ -140,6 +140,7 @@ chmod +x /usr/bin/canary.sh
 
 * Bash 4 or 5
 * kubectl
+* GNU sed
 * An existing service with `metadata.labels.version` defined as your current
   version
 * An existing deployment with `metadata.labels.version` defined, and with the

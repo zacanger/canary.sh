@@ -183,3 +183,5 @@ wheels/
 x/
 !Cargo.lock
 *.yaml*
+*.yml*
+!example.yml
