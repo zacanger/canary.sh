@@ -34,12 +34,12 @@ to the new version at 30 second intervals.
 
 Optional variables:
   KUBE_CONTEXT: defaults to currently selected context.
-  HEALTHCHECK: command or path to scrip to run instead of
+  HEALTHCHECK: path to executable to run instead of
     Kubernetes health check. The command or script should return 0
     if healthy and anything else otherwise.
   HPA: name of Horizontal Pod Autoscaler if there's one targeting
     this deployment.
-  ON_FAILURE: command or script to run if the canary healthcheck
+  ON_FAILURE: path to executable to run if the canary healthcheck
     fails and rolls back.
 
 See $canarysh_repo for details.
