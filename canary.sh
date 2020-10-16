@@ -154,9 +154,6 @@ cancel() {
   echo "[$canarysh ${FUNCNAME[0]}] Removing canary deployment completely"
   kubectl delete deployment "$canary_deployment" -n "$NAMESPACE"
 
-  # echo "[$canarysh ${FUNCNAME[0]}] Removing canary HPA completely"
-  # kubectl delete hpa "$canary_deployment" -n "$NAMESPACE"
-
   exit 1
 }
 
@@ -164,8 +161,11 @@ cleanup() {
   echo "[$canarysh ${FUNCNAME[0]}] Removing previous deployment $prod_deployment"
   kubectl delete deployment "$prod_deployment" -n "$NAMESPACE"
 
-  # echo "[$canarysh ${FUNCNAME[0]}] Removing previous HPA $prod_deployment"
-  # kubectl delete hpa "$prod_deployment" -n "$NAMESPACE"
+  echo "[$canarysh ${FUNCNAME[0]}] Applying new HPA"
+  kubectl delete hpa "$working_dir/canary_hpa.yml" -n "$NAMESPACE"
+
+  echo "[$canarysh ${FUNCNAME[0]}] Removing previous HPA"
+  kubectl delete hpa "$working_dir/original_hpa.yml" -n "$NAMESPACE"
 
   echo "[$canarysh ${FUNCNAME[0]}] Marking canary as new production"
   kubectl get service "$SERVICE" -o=yaml --namespace="${NAMESPACE}" | \
@@ -225,11 +225,11 @@ copy_resources() {
 
   # Replace docker image
   $_sed -Ei -- "s/$current_version/$VERSION/g" "$working_dir/canary_deployment.yml"
-  echo "[$canarysh ${FUNCNAME[0]}] Replaced image name"
+  echo "[$canarysh ${FUNCNAME[0]}] Replaced image in deployment"
   echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
 
-  ## TODO: if hpa exists, we need to copy the hpa, change the target, and also
-  # clean up the old hpa
+  $_sed -Ei -- "s/$current_version/$VERSION/g" "$working_dir/canary_hpa.yml"
+  echo "[$canarysh ${FUNCNAME[0]}] Replaced target in HPA"
 }
 
 main() {
