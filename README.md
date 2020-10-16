@@ -175,6 +175,8 @@ Optional variables:
     if healthy and anything else otherwise.
   HPA: name of Horizontal Pod Autoscaler if there's one targeting
     this deployment.
+  ON_FAILURE: command or script to run if the canary healthcheck
+    fails and rolls back.
 
 See https://github.com/jane/canary.sh for details.
 ```

@@ -39,6 +39,8 @@ Optional variables:
     if healthy and anything else otherwise.
   HPA: name of Horizontal Pod Autoscaler if there's one targeting
     this deployment.
+  ON_FAILURE: command or script to run if the canary healthcheck
+    fails and rolls back.
 
 See $canarysh_repo for details.
 EOF
@@ -130,6 +132,13 @@ healthcheck() {
 }
 
 cancel() {
+  if [ -n "$ON_FAILURE" ]; then
+    # We don't want to break our script if their thing fails
+    set +e
+    "$ON_FAILURE"
+    set -e
+  fi
+
   echo "[$canarysh ${FUNCNAME[0]}] Healthcheck failed; canceling rollout"
 
   echo "[$canarysh ${FUNCNAME[0]}] Restoring original deployment to $prod_deployment"
