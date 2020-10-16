@@ -3,9 +3,14 @@ set -eo pipefail
 
 canarysh_repo='https://github.com/jane/canary.sh'
 canarysh=$(basename "$0")
-# Change to pwd for debugging
-working_dir=$(mktemp -d)
 canary_deployment=$DEPLOYMENT-$VERSION
+working_dir=
+# shellcheck disable=SC2153
+if [ -n "$WORKING_DIR" ]; then
+  working_dir=${WORKING_DIR%/}
+else
+  working_dir=$(mktemp -d)
+fi
 
 # GNU sed only. This is specified in the readme.
 if hash gsed 2>/dev/null; then
@@ -41,6 +46,7 @@ Optional variables:
     this deployment.
   ON_FAILURE: path to executable to run if the canary healthcheck
     fails and rolls back.
+  WORKING_DIR: defaults to \$(mktemp -d).
 
 See $canarysh_repo for details.
 EOF

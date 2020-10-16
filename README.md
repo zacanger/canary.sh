@@ -55,6 +55,7 @@ Optional variables:
     this deployment.
   ON_FAILURE: path to executable to run if the canary healthcheck
     fails and rolls back.
+  WORKING_DIR: defaults to $(mktemp -d).
 
 See https://github.com/jane/canary.sh for details.
 ```
@@ -72,6 +73,7 @@ NAMESPACE=canary-test \
   HEALTHCHECK=/path/to/my/script \ # optional var
   ON_FAILURE=/path/to/script \     # optional var
   KUBE_CONTEXT=context \           # optional var
+  WORKING_DIR=$(pwd) \             # optional var
   canary.sh
 ```
 
