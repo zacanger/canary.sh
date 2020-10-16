@@ -123,9 +123,7 @@ Further improvements
 
 Pure Bash vanilla Kubernetes Canary rollouts
 
-This is tested and safe to use with one caveat: if you have HPAs, this will
-break them, since it creates new deployments with new names. Copying over the
-HPA is a WIP feature.
+**WIP** ON_FAILURE is not yet tested
 
 --------
 

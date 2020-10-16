@@ -5,6 +5,10 @@
 #   TRAFFIC_INCEMENT=20 \
 #   DEPLOYMENT=awesome-app \
 #   SERVICE=awesome-app \
+#   HPA=awesome-app \                # optional var
+#   HEALTHCHECK=/path/to/my/script \ # optional var
+#   ON_FAILURE=/path/to/script \     # optional var
+#   KUBE_CONTEXT=context \           # optional var
 #   canary.sh
 
 apiVersion: v1
@@ -14,7 +18,7 @@ metadata:
   name: awesome-app
   labels:
     # Version label is required
-    version: v0.0.1
+    version: v1.0.0
 spec:
   ports:
   - port: 3000
@@ -28,9 +32,9 @@ kind: Deployment
 metadata:
   namespace: canary-test
   # Version appended to name is required
-  name: awesome-app-v0.0.1
+  name: awesome-app-v1.0.0
 spec:
-  replicas: 8
+  replicas: 7
   strategy:
     type: Recreate
   template:
@@ -40,7 +44,7 @@ spec:
         app: awesome-app
     spec:
       containers:
-      - image: 'awesome-app:v0.0.1'
+      - image: 'awesome-app:v1.0.0'
         name: awesome-app
         ports:
         - containerPort: 3000
@@ -48,3 +52,20 @@ spec:
         - name: NODE_ENV
           value: 'production'
       restartPolicy: Always
+---
+# If using an HPA, make sure you provide the name as a variable,
+# otherwise your HPA will continue targeting the previous deployment.
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  namespace: canary-test
+  name: awesome-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    # Name target with version appended is required
+    name: awesome-app-v1.0.0
+  minReplicas: 7
+  maxReplicas: 14
+  targetCPUUtilizationPercentage: 70
