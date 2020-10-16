@@ -1,4 +1,4 @@
-# canary.sh
+# [canary.sh](https://jane.github.io/canary.sh)
 
 Pure Bash vanilla Kubernetes Canary rollouts
 
@@ -147,7 +147,6 @@ Pull requests and issues are welcome. See
 
 Originally forked from
 <https://github.com/codefresh-io/k8s-canary-deployment> (MIT licensed).
-There's a later version in <https://github.com/codefresh-io/steps>.
 Heavily modified to work without Codefresh, allow more options, include
 better logs and usage messages, treat strings safely, and various other
 changes.
