@@ -1,6 +1,6 @@
 # Run with:
 # NAMESPACE=canary-test \
-#   NEW_VERSION=v0.0.2 \
+#   VERSION=v0.0.2 \
 #   INTERVAL=60 \
 #   TRAFFIC_INCEMENT=20 \
 #   DEPLOYMENT=awesome-app \

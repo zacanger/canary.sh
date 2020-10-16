@@ -5,7 +5,7 @@ canarysh_repo='https://github.com/jane/canary.sh'
 canarysh=$(basename "$0")
 # Change to pwd for debugging
 working_dir=$(mktemp -d)
-canary_deployment=$DEPLOYMENT-$NEW_VERSION
+canary_deployment=$DEPLOYMENT-$VERSION
 
 # GNU sed only. This is specified in the readme.
 if hash gsed 2>/dev/null; then
@@ -19,7 +19,7 @@ usage() {
 $canarysh usage example:
 
 NAMESPACE=books \\
-  NEW_VERSION=v1.0.1 \\
+  VERSION=v1.0.1 \\
   INTERVAL=30 \\
   TRAFFIC_INCREMENT=20 \\
   DEPLOYMENT=book-ratings \\
@@ -37,6 +37,8 @@ Optional variables:
   HEALTHCHECK: command or path to scrip to run instead of
     Kubernetes health check. The command or script should return 0
     if healthy and anything else otherwise.
+  HPA: name of Horizontal Pod Autoscaler if there's one targeting
+    this deployment.
 
 See $canarysh_repo for details.
 EOF
@@ -69,7 +71,7 @@ validate() {
     usage 0
   fi
 
-  if [ -z "$NEW_VERSION" ] || \
+  if [ -z "$VERSION" ] || \
     [ -z "$SERVICE" ] || \
     [ -z "$DEPLOYMENT" ] || \
     [ -z "$TRAFFIC_INCREMENT" ] || \
@@ -155,7 +157,7 @@ cleanup() {
 
   echo "[$canarysh ${FUNCNAME[0]}] Marking canary as new production"
   kubectl get service "$SERVICE" -o=yaml --namespace="${NAMESPACE}" | \
-    $_sed -e "s/$current_version/$NEW_VERSION/g" | \
+    $_sed -e "s/$current_version/$VERSION/g" | \
     kubectl apply --namespace="${NAMESPACE}" -f -
 }
 
@@ -204,13 +206,13 @@ increment_traffic() {
   kubectl -n "$NAMESPACE" rollout status "deployment/$prod_deployment"
 }
 
-copy_deployment() {
+copy_resources() {
   # Replace old deployment name with new
   $_sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$working_dir/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced deployment name"
 
   # Replace docker image
-  $_sed -Ei -- "s/$current_version/$NEW_VERSION/g" "$working_dir/canary_deployment.yml"
+  $_sed -Ei -- "s/$current_version/$VERSION/g" "$working_dir/canary_deployment.yml"
   echo "[$canarysh ${FUNCNAME[0]}] Replaced image name"
   echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
 
@@ -234,8 +236,8 @@ main() {
     exit 1
   fi
 
-  if [ "$current_version" == "$NEW_VERSION" ]; then
-   echo "[$canarysh ${FUNCNAME[0]}] NEW_VERSION matches current_version: $current_version"
+  if [ "$current_version" == "$VERSION" ]; then
+   echo "[$canarysh ${FUNCNAME[0]}] VERSION matches current_version: $current_version"
    exit 0
   fi
 
@@ -250,8 +252,8 @@ main() {
 
   echo "[$canarysh ${FUNCNAME[0]}] Finding current replicas"
 
-  # Copy existing deployment and update image only
-  copy_deployment
+  # Copy existing resources and update
+  copy_resources
 
   starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
   echo "[$canarysh ${FUNCNAME[0]}] Found replicas $starting_replicas"

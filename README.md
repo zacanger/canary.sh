@@ -155,7 +155,7 @@ $ canary.sh -h
 canary.sh usage example:
 
 NAMESPACE=books \
-  NEW_VERSION=v1.0.1 \
+  VERSION=v1.0.1 \
   INTERVAL=30 \
   TRAFFIC_INCREMENT=20 \
   DEPLOYMENT=book-ratings \
@@ -173,6 +173,8 @@ Optional variables:
   HEALTHCHECK: command or path to scrip to run instead of
     Kubernetes health check. The command or script should return 0
     if healthy and anything else otherwise.
+  HPA: name of Horizontal Pod Autoscaler if there's one targeting
+    this deployment.
 
 See https://github.com/jane/canary.sh for details.
 ```
