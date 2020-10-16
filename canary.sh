@@ -132,9 +132,12 @@ healthcheck() {
 }
 
 cancel() {
+  echo "[$canarysh ${FUNCNAME[0]}] Healthcheck failed; canceling rollout"
+
   if [ -n "$ON_FAILURE" ]; then
     # We don't want to break our script if their thing fails
     set +e
+    echo "[$canarysh ${FUNCNAME[0]}] Running \$ON_FAILURE"
     "$ON_FAILURE"
     set -e
   fi
@@ -258,6 +261,12 @@ main() {
 
   echo "[$canarysh ${FUNCNAME[0]}] Backing up original deployment"
   cp "$working_dir/canary_deployment.yml" "$working_dir/original_deployment.yml"
+
+  if [ -n "$HPA" ]; then
+    echo "[$canarysh ${FUNCNAME[0]}] Getting current HPA"
+    kubectl get hpa "$HPA" -n "$NAMESPACE" -o=yaml > "$working_dir/canary_hpa.yml"
+    cp "$working_dir/canary_hpa.yml" "$working_dir/original_hpa.yml"
+  fi
 
   echo "[$canarysh ${FUNCNAME[0]}] Finding current replicas"
 
