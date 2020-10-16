@@ -145,10 +145,10 @@ Pull requests and issues are welcome. See
 
 ## Credits and License
 
-Originally forked from
-<https://github.com/codefresh-io/k8s-canary-deployment> (MIT licensed).
-Heavily modified to work without Codefresh, allow more options, include
-better logs and usage messages, treat strings safely, and various other
-changes.
+Originally forked from <https://github.com/codefresh-io/k8s-canary-deployment>
+(MIT licensed). Heavily modified to work without Codefresh, allow more options,
+include better logs and usage messages, treat strings safely, allow custom
+healthchecks, allow running scripts on failure, work with Horizontal Pod
+Autoscalers, and other changes.
 
 [LICENSE (MIT)](./LICENSE.md)
