@@ -90,7 +90,8 @@ validate() {
 }
 
 healthcheck() {
-  echo "[$canarysh ${FUNCNAME[0]}] Starting healthcheck"
+  log="[$canarysh ${FUNCNAME[0]}]"
+  echo "$log Starting healthcheck"
   h=true
 
   if [ -n "$HEALTHCHECK" ]; then
@@ -111,7 +112,7 @@ healthcheck() {
       -n "$NAMESPACE" \
       --no-headers)
 
-    echo "[$canarysh ${FUNCNAME[0]}] $output"
+    echo "$log $output"
     # TODO:
     # shellcheck disable=SC2207
     s=($(echo "$output" | awk '{s+=$4}END{print s}'))
@@ -131,59 +132,62 @@ healthcheck() {
 
   if [ ! $h == true ]; then
     cancel
-    echo "[$canarysh ${FUNCNAME[0]}] Canary is unhealthy"
+    echo "$log Canary is unhealthy"
   else
-    echo "[$canarysh ${FUNCNAME[0]}] Service healthy"
+    echo "$log Service healthy"
   fi
 }
 
 cancel() {
-  echo "[$canarysh ${FUNCNAME[0]}] Healthcheck failed; canceling rollout"
+  log="[$canarysh ${FUNCNAME[0]}]"
+  echo "$log Healthcheck failed; canceling rollout"
 
   if [ -n "$ON_FAILURE" ]; then
     # We don't want to break our script if their thing fails
     set +e
-    echo "[$canarysh ${FUNCNAME[0]}] Running \$ON_FAILURE"
+    echo "$log Running \$ON_FAILURE"
     "$ON_FAILURE"
     set -e
   fi
 
-  echo "[$canarysh ${FUNCNAME[0]}] Healthcheck failed; canceling rollout"
+  echo "$log Healthcheck failed; canceling rollout"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Restoring original deployment to $prod_deployment"
+  echo "$log Restoring original deployment to $prod_deployment"
   kubectl apply \
     --force \
     -f "$working_dir/original_deployment.yml" \
     -n "$NAMESPACE"
   kubectl rollout status "deployment/$prod_deployment" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Removing canary deployment completely"
+  echo "$log Removing canary deployment completely"
   kubectl delete deployment "$canary_deployment" -n "$NAMESPACE"
 
   exit 1
 }
 
 cleanup() {
-  echo "[$canarysh ${FUNCNAME[0]}] Removing previous HPA"
+  log="[$canarysh ${FUNCNAME[0]}]"
+  echo "$log Removing previous HPA"
   kubectl delete -f "$working_dir/canary_hpa.yml" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Applying new HPA"
+  echo "$log Applying new HPA"
   kubectl apply -f "$working_dir/canary_hpa.yml" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Removing previous deployment $prod_deployment"
+  echo "$log Removing previous deployment $prod_deployment"
   kubectl delete deployment "$prod_deployment" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Marking canary as new production"
+  echo "$log Marking canary as new production"
   kubectl get service "$SERVICE" -o=yaml --namespace="${NAMESPACE}" | \
     $_sed -e "s/$current_version/$VERSION/g" | \
     kubectl apply --namespace="${NAMESPACE}" -f -
 }
 
 increment_traffic() {
+  log="[$canarysh ${FUNCNAME[0]}]"
   percent=$1
   replicas=$2
 
-  echo "[$canarysh ${FUNCNAME[0]}] Increasing canaries to $percent percent, max replicas is $replicas"
+  echo "$log Increasing canaries to $percent percent, max replicas is $replicas"
 
   prod_replicas=$(kubectl get deployment \
     "$prod_deployment" \
@@ -194,12 +198,12 @@ increment_traffic() {
     "$canary_deployment" \
     -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
 
-  echo "[$canarysh ${FUNCNAME[0]}] Production has now $prod_replicas replicas, canary has $canary_replicas replicas"
+  echo "$log Production has now $prod_replicas replicas, canary has $canary_replicas replicas"
 
   # This gets the floor for pods, 2.69 will equal 2
   increment=$(((percent*replicas*100)/(100-percent)/100))
 
-  echo "[$canarysh ${FUNCNAME[0]}] Incrementing canary and decreasing production for $increment replicas"
+  echo "$log Incrementing canary and decreasing production for $increment replicas"
 
   new_prod_replicas=$((prod_replicas-increment))
   # Sanity check
@@ -214,10 +218,10 @@ increment_traffic() {
     new_prod_replicas=0
   fi
 
-  echo "[$canarysh ${FUNCNAME[0]}] Setting canary replicas to $new_canary_replicas"
+  echo "$log Setting canary replicas to $new_canary_replicas"
   kubectl -n "$NAMESPACE" scale --replicas="$new_canary_replicas" "deploy/$canary_deployment"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Setting production replicas to $new_prod_replicas"
+  echo "$log Setting production replicas to $new_prod_replicas"
   kubectl -n "$NAMESPACE" scale --replicas=$new_prod_replicas "deploy/$prod_deployment"
 
   # Wait a bit until production instances are down. This should always succeed
@@ -225,75 +229,77 @@ increment_traffic() {
 }
 
 copy_resources() {
+  log="[$canarysh ${FUNCNAME[0]}]"
   # Replace old deployment name with new
   $_sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$working_dir/canary_deployment.yml"
-  echo "[$canarysh ${FUNCNAME[0]}] Replaced deployment name"
+  echo "$log Replaced deployment name"
 
   # Replace docker image
   $_sed -Ei -- "s/$current_version/$VERSION/g" "$working_dir/canary_deployment.yml"
-  echo "[$canarysh ${FUNCNAME[0]}] Replaced image in deployment"
-  echo "[$canarysh ${FUNCNAME[0]}] Production deployment is $prod_deployment, canary is $canary_deployment"
+  echo "$log Replaced image in deployment"
+  echo "$log Production deployment is $prod_deployment, canary is $canary_deployment"
 
   # $_sed -Ei -- "s/$current_version/$VERSION/g" "$working_dir/canary_hpa.yml"
   $_sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$working_dir/canary_hpa.yml"
-  echo "[$canarysh ${FUNCNAME[0]}] Replaced target in HPA"
+  echo "$log Replaced target in HPA"
 }
 
 main() {
+  log="[$canarysh ${FUNCNAME[0]}]"
   if [ -n "$KUBE_CONTEXT" ]; then
-    echo "[$canarysh ${FUNCNAME[0]}] Setting Kubernetes context"
+    echo "$log Setting Kubernetes context"
     kubectl config use-context "${KUBE_CONTEXT}"
   fi
 
-  echo "[$canarysh ${FUNCNAME[0]}] Getting current version"
+  echo "$log Getting current version"
   current_version=$(kubectl get service "$SERVICE" -o=jsonpath='{.metadata.labels.version}' --namespace="${NAMESPACE}")
 
   if [ -z "$current_version" ]; then
-    echo "[$canarysh ${FUNCNAME[0]}] No current version found"
-    echo "[$canarysh ${FUNCNAME[0]}] Do you have metadata.labels.version set?"
-    echo "[$canarysh ${FUNCNAME[0]}] Aborting"
+    echo "$log No current version found"
+    echo "$log Do you have metadata.labels.version set?"
+    echo "$log Aborting"
     exit 1
   fi
 
   if [ "$current_version" == "$VERSION" ]; then
-   echo "[$canarysh ${FUNCNAME[0]}] VERSION matches current_version: $current_version"
+   echo "$log VERSION matches current_version: $current_version"
    exit 0
   fi
 
-  echo "[$canarysh ${FUNCNAME[0]}] Current version is $current_version"
+  echo "$log Current version is $current_version"
   prod_deployment=$DEPLOYMENT-$current_version
 
-  echo "[$canarysh ${FUNCNAME[0]}] Getting current deployment"
+  echo "$log Getting current deployment"
   kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml > "$working_dir/canary_deployment.yml"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Backing up original deployment"
+  echo "$log Backing up original deployment"
   cp "$working_dir/canary_deployment.yml" "$working_dir/original_deployment.yml"
 
   if [ -n "$HPA" ]; then
-    echo "[$canarysh ${FUNCNAME[0]}] Getting current HPA"
+    echo "$log Getting current HPA"
     kubectl get hpa "$HPA" -n "$NAMESPACE" -o=yaml > "$working_dir/canary_hpa.yml"
     cp "$working_dir/canary_hpa.yml" "$working_dir/original_hpa.yml"
   fi
 
-  echo "[$canarysh ${FUNCNAME[0]}] Finding current replicas"
+  echo "$log Finding current replicas"
 
   # Copy existing resources and update
   copy_resources
 
   starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
-  echo "[$canarysh ${FUNCNAME[0]}] Found replicas $starting_replicas"
+  echo "$log Found replicas $starting_replicas"
 
   # Launch one replica first
   $_sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$working_dir/canary_deployment.yml"
-  echo "[$canarysh ${FUNCNAME[0]}] Launching 1 pod with canary"
+  echo "$log Launching 1 pod with canary"
   kubectl apply -f "$working_dir/canary_deployment.yml" -n "$NAMESPACE"
 
-  echo "[$canarysh ${FUNCNAME[0]}] Waiting for canary pod"
+  echo "$log Waiting for canary pod"
   while [ "$(kubectl get pods -l app="$canary_deployment" -n "$NAMESPACE" --no-headers | wc -l)" -eq 0 ]; do
     sleep 2
   done
 
-  echo "[$canarysh ${FUNCNAME[0]}] Canary target replicas: $starting_replicas"
+  echo "$log Canary target replicas: $starting_replicas"
 
   healthcheck
 
@@ -302,17 +308,17 @@ main() {
     if [ "$p" -gt "100" ]; then
       p=100
     fi
-    echo "[$canarysh ${FUNCNAME[0]}] Rollout is at $p percent"
+    echo "$log Rollout is at $p percent"
 
     increment_traffic "$TRAFFIC_INCREMENT" "$starting_replicas"
 
     if [ "$p" == "100" ]; then
       cleanup
-      echo "[$canarysh ${FUNCNAME[0]}] Done"
+      echo "$log Done"
       exit 0
     fi
 
-    echo "[$canarysh ${FUNCNAME[0]}] Sleeping for $INTERVAL seconds"
+    echo "$log Sleeping for $INTERVAL seconds"
     sleep "$INTERVAL"
     healthcheck
   done
