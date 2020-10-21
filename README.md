@@ -94,13 +94,16 @@ spec:
   selector:
     app: awesome-app
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: canary-test
   # Version appended to name is required
   name: awesome-app-v1.0.0
 spec:
+  selector:
+    matchLabels:
+      app: awesome-app
   replicas: 7
   strategy:
     type: Recreate
