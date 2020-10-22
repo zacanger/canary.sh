@@ -64,7 +64,7 @@ See https://github.com/jane/canary.sh for details.
 
 ```bash
 NAMESPACE=canary-test \
-  VERSION=v1.0.1 \
+  VERSION=v0.0.2 \
   INTERVAL=60 \
   TRAFFIC_INCEMENT=20 \
   DEPLOYMENT=awesome-app \
@@ -78,66 +78,83 @@ NAMESPACE=canary-test \
 ```
 
 ```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  namespace: canary-test
-  name: awesome-app
-  labels:
-    # Version label is required
-    version: v1.0.0
-spec:
-  ports:
-  - port: 3000
-    targetPort: 3000
-    protocol: TCP
-  selector:
-    app: awesome-app
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: canary-test
-  # Version appended to name is required
-  name: awesome-app-v1.0.0
+  labels:
+    somecompany.app: awesome-app
+  # Append version to name
+  name: awesome-app-0.0.1
 spec:
   selector:
     matchLabels:
-      app: awesome-app
+      somecompany.app: awesome-app
   replicas: 7
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
-        # App label is required
-        app: awesome-app
+        # Add app label with name and version
+        app: awesome-app-0.0.1
+        somecompany.app: awesome-app
     spec:
       containers:
-      - image: 'awesome-app:v1.0.0'
+      - image: 'some-repo/awesome-app:0.0.1'
         name: awesome-app
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+          requests:
+            cpu: 1000m
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /.health/alive
+            port: 80
+        readinessProbe:
+          httpGet:
+            path: /.health/ready
+            port: 80
         ports:
-        - containerPort: 3000
+        - containerPort: 80
         env:
-        - name: NODE_ENV
-          value: 'production'
+          - name: FOO
+            value: 'bar'
       restartPolicy: Always
 ---
-# If using an HPA, make sure you provide the name as a variable,
-# otherwise your HPA will continue targeting the previous deployment.
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    somecompany.app: awesome-app
+    # Add version label
+    version: 0.0.1
+  name: awesome-app
+spec:
+  type: LoadBalancer
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 21600
+  ports:
+  - name: https
+    port: 443
+    targetPort: 80
+  selector:
+    somecompany.app: awesome-app
+---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  namespace: canary-test
   name: awesome-app
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    # Name target with version appended is required
-    name: awesome-app-v1.0.0
+    # Append version to match deployment name if using an HPA
+    name: awesome-app-0.0.1
   minReplicas: 7
-  maxReplicas: 14
+  maxReplicas: 20
   targetCPUUtilizationPercentage: 70
 ```
 
