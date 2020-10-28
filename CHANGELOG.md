@@ -1,6 +1,12 @@
 # Changes
 
 
+## v0.1.2
+
+* fix(release): uncomment
+* docs: releasing
+* docs: changelog
+
 ## v0.1.1
 
 * docs: changelog
