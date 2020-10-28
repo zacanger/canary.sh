@@ -1,6 +1,10 @@
 # Changes
 
 
+## v0.1.1
+
+* docs: changelog
+
 ## v0.1.0
 
 * docs: update example
