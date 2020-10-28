@@ -6,4 +6,4 @@ git tag -a "$1" -m "$1"
 ./scripts/changelog.sh
 git add CHANGELOG.md
 git commit -m 'docs: changelog'
-git push origin master --follow-tags
+# git push origin master --follow-tags
