@@ -55,8 +55,6 @@ EOF
   exit "$1"
 }
 
-# TODO: Should we switch to using getopt/getopts
-# rather than env vars?
 validate() {
   if ! hash kubectl 2>/dev/null; then
     echo "$canarysh: kubectl is required to use this program"
@@ -99,7 +97,6 @@ healthcheck() {
     # Set +e so the parent (this script) doesn't exit
     set +e
     "$HEALTHCHECK"
-    # TODO:
     # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
       h=false
@@ -113,9 +110,9 @@ healthcheck() {
       --no-headers)
 
     echo "$log $output"
-    # TODO:
     # shellcheck disable=SC2207
     s=($(echo "$output" | awk '{s+=$4}END{print s}'))
+
     # TODO:
     # shellcheck disable=SC2207
     # c=($(echo "$output" | wc -l))
@@ -123,7 +120,6 @@ healthcheck() {
     #     h=false
     # fi
 
-    # TODO:
     # shellcheck disable=SC2128
     if [ "$s" -gt "2" ]; then
       h=false
