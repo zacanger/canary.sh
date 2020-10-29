@@ -16,6 +16,14 @@ chmod +x /usr/local/bin/canary.sh
 canary.sh -h
 ```
 
+You can also get specific tags or commits. Example:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/jane/canary.sh/v0.1.0/canary.sh -o canary.sh
+```
+
+See the [changelog](./CHANGELOG.md) for history.
+
 ## Prerequisites
 
 * Bash 4+
