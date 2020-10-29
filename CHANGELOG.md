@@ -1,6 +1,12 @@
 # Changes
 
 
+## v0.2.0
+
+* docs(install): example on installing from a tag
+* chore: remove some todos
+* docs: changelog
+
 ## v0.1.2
 
 * fix(release): uncomment
