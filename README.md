@@ -11,7 +11,7 @@ Get the script, put it somewhere in PATH, and make it executable. Example:
 ```bash
 curl -sSL https://git.io/canary.sh -o /usr/local/bin/canary.sh
 # Always verify the contents of anything you curl down before running!
-less /usr/local/bin/canary/sh
+less /usr/local/bin/canary.sh
 chmod +x /usr/local/bin/canary.sh
 canary.sh -h
 ```
