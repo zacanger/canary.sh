@@ -39,9 +39,10 @@ to the new version at 30 second intervals.
 
 Optional variables:
   KUBE_CONTEXT: defaults to currently selected context.
-  HEALTHCHECK: path to executable to run instead of
-    Kubernetes health check. The command or script should return 0
-    if healthy and anything else otherwise.
+  HEALTHCHECK: path to executable to run instead of basing health
+    on pod restarts. The command or script should return 0
+    if healthy and anything else otherwise. If nothing is specified,
+    pod restarts are used (see Kubernetes docs for probes).
   HPA: name of Horizontal Pod Autoscaler if there's one targeting
     this deployment.
   ON_FAILURE: path to executable to run if the canary healthcheck
@@ -112,6 +113,7 @@ healthcheck() {
     echo "$log $output"
     # shellcheck disable=SC2207
     s=($(echo "$output" | awk '{s+=$4}END{print s}'))
+    # NAME READY STATUS RESTARTS AGE
 
     # TODO:
     # shellcheck disable=SC2207
