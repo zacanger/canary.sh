@@ -115,15 +115,10 @@ healthcheck() {
     s=($(echo "$output" | awk '{s+=$4}END{print s}'))
     # NAME READY STATUS RESTARTS AGE
 
-    # TODO:
-    # shellcheck disable=SC2207
-    # c=($(echo "$output" | wc -l))
-    # if [ "$c" -lt "1" ]; then
-    #     h=false
-    # fi
-
+    # Restart count. Restarts mean the probes are failing (or other issues,
+    # unlhealthy either way).
     # shellcheck disable=SC2128
-    if [ "$s" -gt "2" ]; then
+    if [ "$s" -gt "4" ]; then
       h=false
     fi
   fi
