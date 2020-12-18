@@ -1,6 +1,13 @@
 # Changes
 
 
+## v0.3.0
+
+* chore: cleanup
+* docs: clarify where default healthcheck comes from
+* docs(readme): fix typo
+* docs: changelog
+
 ## v0.2.0
 
 * docs(install): example on installing from a tag
