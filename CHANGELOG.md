@@ -1,6 +1,11 @@
 # Changes
 
 
+## v0.3.1
+
+* chore: cleanup
+* docs: changelog
+
 ## v0.3.0
 
 * chore: cleanup
