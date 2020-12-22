@@ -10,6 +10,6 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(EXEC)
 
 test:
-	shellcheck --shell=bash canary.sh
+	shellcheck --shell=bash canary.sh scripts/changelog.sh scripts/release.sh
 
 .PHONY: test uninstall
