@@ -5,6 +5,7 @@ canarysh_repo='https://github.com/jane/canary.sh'
 canarysh=$(basename "$0")
 canary_deployment=$DEPLOYMENT-$VERSION
 working_dir=
+# shellcheck disable=SC2153
 if [ -n "$WORKING_DIR" ]; then
   working_dir=${WORKING_DIR%/}
 else
