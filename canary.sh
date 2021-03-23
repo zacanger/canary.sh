@@ -107,7 +107,6 @@ healthcheck() {
     # K8s healthcheck
     output=$(kubectl get pods \
       -l app="$canary_deployment" \
-      -n "$NAMESPACE" \
       --no-headers)
 
     echo "$log $output"
@@ -124,7 +123,7 @@ healthcheck() {
   fi
 
   if [ ! $h == true ]; then
-    cancel
+    cancel "Healthcheck failed; canceling rollout"
     echo "$log Canary is unhealthy"
   else
     echo "$log Service healthy"
@@ -133,7 +132,8 @@ healthcheck() {
 
 cancel() {
   log="[$canarysh ${FUNCNAME[0]}]"
-  echo "$log Healthcheck failed; canceling rollout"
+  message=$1
+  echo "$log $message"
 
   if [ -n "$ON_FAILURE" ]; then
     # We don't want to break our script if their thing fails
@@ -143,17 +143,17 @@ cancel() {
     set -e
   fi
 
-  echo "$log Healthcheck failed; canceling rollout"
-
+  echo "$log $message"
+  #TODO this is not the correct way to roll back a k8s deploy,
+  #restore previous rs instead and stop changing the deploy name
   echo "$log Restoring original deployment to $prod_deployment"
   kubectl apply \
     --force \
-    -f "$working_dir/original_deployment.yml" \
-    -n "$NAMESPACE"
-  kubectl rollout status "deployment/$prod_deployment" -n "$NAMESPACE"
+    -f "$working_dir/original_deployment.yml"
+  kubectl rollout status "deployment/$prod_deployment"
 
   echo "$log Removing canary deployment completely"
-  kubectl delete deployment "$canary_deployment" -n "$NAMESPACE"
+  kubectl delete deployment "$canary_deployment"
 
   exit 1
 }
@@ -161,42 +161,33 @@ cancel() {
 cleanup() {
   log="[$canarysh ${FUNCNAME[0]}]"
   echo "$log Removing previous HPA"
-  kubectl delete -f "$working_dir/canary_hpa.yml" -n "$NAMESPACE"
+  kubectl delete -f "$working_dir/canary_hpa.yml"
 
   echo "$log Applying new HPA"
-  kubectl apply -f "$working_dir/canary_hpa.yml" -n "$NAMESPACE"
+  kubectl apply -f "$working_dir/canary_hpa.yml"
 
   echo "$log Removing previous deployment $prod_deployment"
-  kubectl delete deployment "$prod_deployment" -n "$NAMESPACE"
+  kubectl delete deployment "$prod_deployment"
 
   echo "$log Marking canary as new production"
-  kubectl get service "$SERVICE" -o=yaml --namespace="${NAMESPACE}" | \
+  kubectl get service "$SERVICE" -o=yaml | \
     $_sed -e "s/$current_version/$VERSION/g" | \
-    kubectl apply --namespace="${NAMESPACE}" -f -
+    kubectl apply -f -
 }
 
 increment_traffic() {
   log="[$canarysh ${FUNCNAME[0]}]"
-  percent=$1
-  replicas=$2
+  increment=$1
+  max_replicas=$2
 
-  echo "$log Increasing canaries to $percent percent, max replicas is $replicas"
 
   prod_replicas=$(kubectl get deployment \
     "$prod_deployment" \
-    -n "$NAMESPACE" \
     -o=jsonpath='{.spec.replicas}')
 
   canary_replicas=$(kubectl get deployment \
     "$canary_deployment" \
-    -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
-
-  echo "$log Production has now $prod_replicas replicas, canary has $canary_replicas replicas"
-
-  # This gets the floor for pods, 2.69 will equal 2
-  increment=$(((percent*replicas*100)/(100-percent)/100))
-
-  echo "$log Incrementing canary and decreasing production for $increment replicas"
+     -o=jsonpath='{.spec.replicas}')
 
   new_prod_replicas=$((prod_replicas-increment))
   # Sanity check
@@ -206,25 +197,46 @@ increment_traffic() {
 
   new_canary_replicas=$((canary_replicas+increment))
   # Sanity check
-  if [ "$new_canary_replicas" -ge "$replicas" ]; then
-    new_canary_replicas=$replicas
+  if [ "$new_canary_replicas" -ge "$max_replicas" ]; then
+    new_canary_replicas=$max_replicas
     new_prod_replicas=0
   fi
 
   echo "$log Setting canary replicas to $new_canary_replicas"
-  kubectl -n "$NAMESPACE" scale --replicas="$new_canary_replicas" "deploy/$canary_deployment"
+  kubectl scale --replicas="$new_canary_replicas" "deploy/$canary_deployment"
 
   echo "$log Setting production replicas to $new_prod_replicas"
-  kubectl -n "$NAMESPACE" scale --replicas=$new_prod_replicas "deploy/$prod_deployment"
+  kubectl scale --replicas=$new_prod_replicas "deploy/$prod_deployment"
 
-  # Wait a bit until production instances are down. This should always succeed
-  kubectl -n "$NAMESPACE" rollout status "deployment/$prod_deployment"
+  # Verify scaling is where we expect
+  time=0
+  while [ "$(kubectl get deploy "$canary_deployment" -o=jsonpath='{.status.availableReplicas}')" -ne "$new_canary_replicas" ]; do
+    sleep 2
+    time=$((time+2))
+    if [ "$time" -gt "300" ]; then
+      cancel "timeout scaling up"
+      exit 1
+    fi
+    echo -n "."
+  done
+  echo "$log Success:         canary replicas = $new_canary_replicas"
+  time=0
+  while [ "$(kubectl get deploy "$prod_deployment" -o=jsonpath='{.status.availableReplicas}')" -ne "$new_prod_replicas" ]; do
+    sleep 2
+    time=$((time+2))
+    if [ "$time" -gt "60" ]; then
+      cancel "timeout scaling down"
+      exit 1
+    fi
+    echo -n "."
+  done
+  echo "$log Success: old production replicas = $new_prod_replicas"
 }
 
 copy_resources() {
 #  # removed this step as the next one takes care of it, and using both creates
 #  # a breaking edge case when current version is substr of version.
-#  log="[$canarysh ${FUNCNAME[0]}]"
+  log="[$canarysh ${FUNCNAME[0]}]"
 #  # Replace old deployment name with new
 #  $_sed -Ei -- "s/name\: $prod_deployment/name: $canary_deployment/g" "$working_dir/canary_deployment.yml"
 #  echo "$log Replaced deployment name"
@@ -244,10 +256,22 @@ main() {
   if [ -n "$KUBE_CONTEXT" ]; then
     echo "$log Setting Kubernetes context"
     kubectl config use-context "${KUBE_CONTEXT}"
+  else
+    echo "$log ---WARNING: running canaries without passing kube_context is dangerous and support for that pattern will soon end---"
   fi
+  echo "$log Setting Kubernetes namespace to ${NAMESPACE}"
+  { #try
+    kubectl get namespace "${NAMESPACE}"
+  } || { #catch
+    echo "$log namespace not found.  You may need to set your KUBE_CONTEXT"
+    echo "$log KUBE_CONTEXT was set to ${KUBE_CONTEXT} for this build"
+    echo "$log Aborting"
+    exit 1
+  }
+  kubectl config set-context --current --namespace="${NAMESPACE}"
 
   echo "$log Getting current version"
-  current_version=$(kubectl get service "$SERVICE" -o=jsonpath='{.metadata.labels.version}' --namespace="${NAMESPACE}")
+  current_version=$(kubectl get service "$SERVICE" -o=jsonpath='{.metadata.labels.version}')
 
   if [ -z "$current_version" ]; then
     echo "$log No current version found"
@@ -265,14 +289,14 @@ main() {
   prod_deployment=$DEPLOYMENT-$current_version
 
   echo "$log Getting current deployment"
-  kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=yaml > "$working_dir/canary_deployment.yml"
+  kubectl get deployment "$prod_deployment" -o=yaml > "$working_dir/canary_deployment.yml"
 
   echo "$log Backing up original deployment"
   cp "$working_dir/canary_deployment.yml" "$working_dir/original_deployment.yml"
 
   if [ -n "$HPA" ]; then
     echo "$log Getting current HPA"
-    kubectl get hpa "$HPA" -n "$NAMESPACE" -o=yaml > "$working_dir/canary_hpa.yml"
+    kubectl get hpa "$HPA" -o=yaml > "$working_dir/canary_hpa.yml"
     cp "$working_dir/canary_hpa.yml" "$working_dir/original_hpa.yml"
   fi
 
@@ -280,44 +304,65 @@ main() {
 
   # Copy existing resources and update
   copy_resources
-
-  starting_replicas=$(kubectl get deployment "$prod_deployment" -n "$NAMESPACE" -o=jsonpath='{.spec.replicas}')
+  log="[$canarysh ${FUNCNAME[0]}]"
+  starting_replicas=$(kubectl get deployment "$prod_deployment" -o=jsonpath='{.spec.replicas}')
   echo "$log Found replicas $starting_replicas"
+  echo "$log calculating increment..."
 
+  # find increment float, convert to int(floor), and round up to 1 if needed
+  pod_increment=$((TRAFFIC_INCREMENT*starting_replicas/100))
+  pod_increment=${pod_increment%.*}
+  if [ "$pod_increment" -lt "1" ]; then
+    pod_increment=1
+  fi
+  echo "$log pods will be incremented by $pod_increment"
   # Launch one replica first
   $_sed -Ei -- "s#replicas: $starting_replicas#replicas: 1#g" "$working_dir/canary_deployment.yml"
   echo "$log Launching 1 pod with canary"
-  kubectl apply -f "$working_dir/canary_deployment.yml" -n "$NAMESPACE"
+  kubectl apply -f "$working_dir/canary_deployment.yml"
 
-  echo "$log Waiting for canary pod"
-  while [ "$(kubectl get pods -l app="$canary_deployment" -n "$NAMESPACE" --no-headers | wc -l)" -eq 0 ]; do
+  echo -n "$log Waiting for canary pod"
+  time=0
+  #check to make sure everything is set up correctly for our query to return a number
+  isNumber='^[0-9]+$'
+  kubectlResult="$(kubectl get deploy "$canary_deployment" -o=jsonpath='{.status.availableReplicas}')"
+  if ! [[ $kubectlResult =~ $isNumber ]]; then
+    echo "$log kubectl expected a numbered response, instead got:"
+    echo "$log $kubectlResult"
+    echo "$log Aborting"
+    exit 1
+  fi
+  while [ "$(kubectl get deploy "$canary_deployment" -o=jsonpath='{.status.availableReplicas}')" -eq 0 ]; do
     sleep 2
+    time=$((time+2))
+    if [ "$time" -gt "600" ]; then
+      cancel "timeout deploying first replica"
+      exit 1
+    fi
+    echo -n "."
   done
-
+  echo ''
   echo "$log Canary target replicas: $starting_replicas"
 
   healthcheck
+  log="[$canarysh ${FUNCNAME[0]}]"
 
-  while [ "$TRAFFIC_INCREMENT" -lt 100 ]; do
-    p=$((p + "$TRAFFIC_INCREMENT"))
-    if [ "$p" -gt "100" ]; then
-      p=100
-    fi
-    echo "$log Rollout is at $p percent"
-
-    increment_traffic "$TRAFFIC_INCREMENT" "$starting_replicas"
-
-    if [ "$p" == "100" ]; then
+  echo "$log scaling canaries to $starting_replicas by increments of $pod_increment"
+  while true; do
+    if [ "$(kubectl get deploy "$canary_deployment" -o=jsonpath='{.status.availableReplicas}')" -ge "$starting_replicas" ]; then
       cleanup
       echo "$log Done"
       exit 0
     fi
-
+    increment_traffic "$pod_increment" "$starting_replicas"
+    log="[$canarysh ${FUNCNAME[0]}]"
     echo "$log Sleeping for $INTERVAL seconds"
     sleep "$INTERVAL"
     healthcheck
+    log="[$canarysh ${FUNCNAME[0]}]"
   done
-}
+
+}}
 
 validate "$@"
 main
