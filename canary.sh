@@ -362,7 +362,7 @@ main() {
     log="[$canarysh ${FUNCNAME[0]}]"
   done
 
-}}
+}
 
 validate "$@"
 main
