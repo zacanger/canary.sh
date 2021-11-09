@@ -335,6 +335,8 @@ main() {
     sleep 2
     time=$((time+2))
     if [ "$time" -gt "600" ]; then
+      deployment_log=$(kubectl logs deploy/"$canary__deployment")
+      echo "$log deployment log -- $deployment_log"
       cancel "timeout waiting for k8s deploy to build"
       exit 1
     fi
