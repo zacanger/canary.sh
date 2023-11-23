@@ -1,7 +1,6 @@
 MIT License
 
-Copyright (c) 2020 Jane
-Copyright (c) 2019 Codefresh
+Copyright © 2023 Zac Anger
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

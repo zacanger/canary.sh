@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-canarysh_repo='https://github.com/jane/canary.sh'
+canarysh_repo='https://github.com/zacanger/canary.sh'
 canarysh=$(basename "$0")
 canary_deployment=$DEPLOYMENT-$VERSION
 working_dir=

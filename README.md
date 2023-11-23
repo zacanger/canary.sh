@@ -1,4 +1,4 @@
-# [canary.sh](https://jane.github.io/canary.sh)
+# canary.sh
 
 Pure Bash vanilla Kubernetes Canary rollouts
 
@@ -19,7 +19,7 @@ canary.sh -h
 You can also get specific tags or commits. Example:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/jane/canary.sh/v0.1.0/canary.sh -o canary.sh
+curl -sSL https://raw.githubusercontent.com/zacanger/canary.sh/v0.4.0/canary.sh -o canary.sh
 ```
 
 See the [changelog](./CHANGELOG.md) for history.
@@ -66,7 +66,7 @@ Optional variables:
     fails and rolls back.
   WORKING_DIR: defaults to $(mktemp -d).
 
-See https://github.com/jane/canary.sh for details.
+See https://github.com/zacanger/canary.sh for details.
 ```
 
 ## Example
