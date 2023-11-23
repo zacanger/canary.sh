@@ -1,6 +1,22 @@
 # Changes
 
 
+## v0.4.0
+
+* chore: taking this back i guess
+* Added Deployment logs upon failure
+* remove hpa during canary rollout (#6)
+* wait for k8s deploy to be available (#5)
+* formatting
+* Grokable (#4)
+* Revert "canary rewrite (#2)"
+* Revert "Grokable (#3)"
+* Grokable (#3)
+* canary rewrite (#2)
+* fixed edge case when current version is a substr of version (#1)
+* fix: add a shellcheck disable
+* docs: changelog
+
 ## v0.3.1
 
 * chore: cleanup
