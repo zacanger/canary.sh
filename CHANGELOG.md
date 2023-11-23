@@ -1,6 +1,11 @@
 # Changes
 
 
+## v0.4.1
+
+* fix: look at what they did to my boy
+* docs: changelog
+
 ## v0.4.0
 
 * chore: taking this back i guess
