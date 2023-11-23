@@ -123,8 +123,8 @@ healthcheck() {
   fi
 
   if [ ! $h == true ]; then
-    cancel "Healthcheck failed; canceling rollout"
     echo "$log Canary is unhealthy"
+    cancel "Healthcheck failed; canceling rollout"
   else
     echo "$log Service healthy"
   fi
@@ -216,7 +216,6 @@ increment_traffic() {
     time=$((time+2))
     if [ "$time" -gt "300" ]; then
       cancel "timeout scaling up"
-      exit 1
     fi
     echo -n "."
   done
@@ -227,7 +226,6 @@ increment_traffic() {
     time=$((time+2))
     if [ "$time" -gt "60" ]; then
       cancel "timeout scaling down"
-      exit 1
     fi
     echo -n "."
   done
@@ -335,10 +333,9 @@ main() {
     sleep 2
     time=$((time+2))
     if [ "$time" -gt "600" ]; then
-      deployment_log=$(kubectl logs deploy/"$canary__deployment")
+      deployment_log=$(kubectl logs deploy/"$canary_deployment")
       echo "$log deployment log -- $deployment_log"
       cancel "timeout waiting for k8s deploy to build"
-      exit 1
     fi
     echo -n "."
   done
@@ -348,7 +345,6 @@ main() {
     echo "$log $kubectlResult"
     echo "$log Aborting"
     cancel "non-numbered kubectl response"
-    exit 1
   fi
   time=0
   while [ "$(kubectl get deploy "$canary_deployment" -o=jsonpath='{.status.availableReplicas}')" -eq 0 ]; do
@@ -356,7 +352,6 @@ main() {
     time=$((time+2))
     if [ "$time" -gt "600" ]; then
       cancel "timeout deploying first replica"
-      exit 1
     fi
     echo -n "."
   done
